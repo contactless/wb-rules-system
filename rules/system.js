@@ -17,6 +17,30 @@ var systemCells = {
   },
   "Reboot": {
     type: "pushbutton"
+  },
+  "data free in MB": {
+    type: "value",
+    value: "0"
+  },
+  "data used in MB": {
+    type: "value",
+    value: "0"
+  },
+  "data used in %": {
+    type: "value",
+    value: "0"
+  },
+  "root free in MB": {
+    type: "value",
+    value: "0"
+  },
+  "root used in MB": {
+    type: "value",
+    value: "0"
+  },
+  "root used in %": {
+    type: "value",
+    value: "0"
   }
 };
 
@@ -62,6 +86,20 @@ function initSystemDevice(hasWirenboardNode) {
     systemCells["Temperature Grade"] = {type: "text", value: ""};
   }
 
+//volumePath - path to partition, namepart - name for Cells (interface)
+function fillSystemDiskStats(volumePath, namepart) { 
+  runShellCommand("df -m "+volumePath+" | tail -1", {
+    captureOutput: true,
+    exitCallback: function (exitCode, capturedOutput) {
+      var var_separated = capturedOutput.split(/\s+/);
+      dev.system[namepart+" free in MB"] = parseInt(var_separated[3]);
+      dev.system[namepart+" used in MB"] = parseInt(var_separated[2]);
+      dev.system[namepart+" used in %"] = parseInt(var_separated[4].replace("%", ""));
+      }
+    });
+};
+
+
 
   defineVirtualDevice("system", {
     title:"System",
@@ -77,6 +115,11 @@ function initSystemDevice(hasWirenboardNode) {
 
   _system_update_uptime();
   setInterval(_system_update_uptime, 60000);
+
+  setInterval(function DiskStats() {
+  fillSystemDiskStats("\/mnt\/data", "data");
+  fillSystemDiskStats("\/", "root");
+ }, 140000);
 
   spawn('cat', ['/etc/wb-fw-version'], {
     captureOutput: true,
